@@ -1,9 +1,10 @@
 %{
+#include "main.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-// Declarações externas (implementadas no main.c)
-extern void add_symbol(const char *nome, const char *tipo);
+// Variáveis globais definidas no main.c
 extern EntradaTabela tabela[];
 extern int indice_tabela;
 extern char *escopo_atual;
@@ -17,17 +18,17 @@ DIGITO       [0-9]
 LETRA        [a-zA-Z_]
 IDENTIFICADOR {LETRA}({LETRA}|{DIGITO})*
 ESPACO       [ \t]
-COMENTARIO   "//".*
+COMENTARIO   #.*
 
 %%
 
 {ESPACO}     ;  // Ignora espaços
 {COMENTARIO} ;  // Ignora comentários
 
-"num"        { printf("<KW_NUM> "); add_symbol("num", "keyword"); }
-"cen"        { printf("<KW_CEN> "); add_symbol("cen", "keyword"); }
-"vec"        { printf("<KW_VEC> "); add_symbol("vec", "keyword"); }
-"func"       { printf("<KW_FUNC> "); add_symbol("func", "keyword"); }
+"num"        { printf("<KW_NUM> "); add_symbol(yytext, "num"); }
+"cen"        { printf("<KW_CEN> "); add_symbol(yytext, "cen"); }
+"vec"        { printf("<KW_VEC> "); add_symbol(yytext, "vec"); }
+"func"       { printf("<KW_FUNC> "); add_symbol(yytext, "func"); }
 "check"      { printf("<KW_CHECK> "); }
 "repeat"     { printf("<KW_REPEAT> "); }
 "loop"       { printf("<KW_LOOP> "); }
@@ -38,7 +39,7 @@ COMENTARIO   "//".*
 
 {IDENTIFICADOR} {
     printf("<ID,%d> ", indice_tabela);
-    add_symbol(yytext, "identificador");
+    add_symbol(yytext, "id");
 }
 
 {DIGITO}+    { printf("<LIT_INT,%s> ", yytext); }
@@ -80,19 +81,6 @@ COMENTARIO   "//".*
 
 \n          ;  // Ignora quebras de linha
 
-.           { printf("\nErro léxico: caractere inválido '%s'\n", yytext); }
+.           { printf("\nErro léxico: caractere inválido '%s' (linha %d)\n", yytext, yylineno); }
 
 %%
-
-int main(int argc, char **argv) {
-    yyin = fopen(argv[1], "r");
-    if (!yyin) {
-        printf("Erro ao abrir o arquivo.\n");
-        return 1;
-    }
-
-    yylex();
-    print_tabela();
-    fclose(yyin);
-    return 0;
-}

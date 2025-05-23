@@ -1,23 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// Estrutura da Tabela de Símbolos
-typedef struct {
-    char *nome;
-    char *tipo;
-    char *escopo;
-    int linha;
-} EntradaTabela;
-
-// Variáveis globais
-EntradaTabela tabela[100];
-int indice_tabela = 0;
-char *escopo_atual = "global";
+#include "main.h"
 
 // Protótipos das funções do lexer.l
 extern int yylex(void);
 extern FILE *yyin;
+extern int yylineno;
+extern char *yytext;
+extern int yyleng;
 
 // Função para adicionar símbolos à tabela
 void add_symbol(const char *nome, const char *tipo) {
@@ -32,6 +23,11 @@ void add_symbol(const char *nome, const char *tipo) {
         exit(1);
     }
 }
+
+// Definição das variáveis globais (com alocação de memória)
+EntradaTabela tabela[100];
+int indice_tabela = 0;
+char *escopo_atual = "global";
 
 // Função para imprimir a tabela de símbolos
 void print_tabela() {
