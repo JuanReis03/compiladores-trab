@@ -7,9 +7,31 @@
 // Variáveis globais definidas no main.c
 extern EntradaTabela tabela[];
 extern int indice_tabela;
-extern char *escopo_atual;
+extern char tipo_atual[32];
 extern int yylineno;
+int em_declaracao = 0;
 
+// Função para checar se é palavra-chave
+int is_keyword(const char *lexema) {
+    const char *keywords[] = {
+        "func", "num", "cen", "vec", "check", "repeat", "loop", "return", "void", "let", "color", "from", "to"
+    };
+    int n = sizeof(keywords)/sizeof(keywords[0]);
+    for (int i = 0; i < n; i++) {
+        if (strcmp(lexema, keywords[i]) == 0) return 1;
+    }
+    return 0;
+}
+
+// Função para checar se identificador já está na tabela
+int symbol_exists(const char *nome) {
+    for (int i = 1; i < indice_tabela; i++) {
+        if (strcmp(tabela[i].nome, nome) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
 %}
 
 %option noyywrap yylineno
@@ -25,62 +47,138 @@ COMENTARIO   #.*
 {ESPACO}     ;  // Ignora espaços
 {COMENTARIO} ;  // Ignora comentários
 
-"num"        { printf("<KW_NUM> "); add_symbol(yytext, "num"); }
-"cen"        { printf("<KW_CEN> "); add_symbol(yytext, "cen"); }
-"vec"        { printf("<KW_VEC> "); add_symbol(yytext, "vec"); }
-"func"       { printf("<KW_FUNC> "); add_symbol(yytext, "func"); }
-"check"      { printf("<KW_CHECK> "); }
-"repeat"     { printf("<KW_REPEAT> "); }
-"loop"       { printf("<KW_LOOP> "); }
-"return"     { printf("<KW_RETURN> "); }
-"void"       { printf("<KW_VOID> "); }
-"let"        { printf("<KW_LET> "); }
-"color"      { printf("<KW_COLOR> "); }
-
-{IDENTIFICADOR} {
-    printf("<ID,%d> ", indice_tabela);
-    add_symbol(yytext, "id");
+"num"        {
+    printf("<num> ");
+    strcpy(tipo_atual, "num");
+    em_declaracao = 1;
 }
 
-{DIGITO}+    { printf("<LIT_INT,%s> ", yytext); }
-{DIGITO}+\.{DIGITO}+ { printf("<LIT_FLOAT,%s> ", yytext); }
+"cen"        {
+    printf("<cen> ");
+    strcpy(tipo_atual, "cen");
+    em_declaracao = 1;
+}
 
-"-<="       { printf("<OP_LE> "); }
-"-<"        { printf("<OP_LT> "); }
-"->="       { printf("<OP_GE> "); }
-"->"        { printf("<OP_GT> "); }
-":="        { printf("<OP_EQ> "); }
-":!"        { printf("<OP_NE> "); }
+"vec"        {
+    printf("<vec> ");
+    strcpy(tipo_atual, "vec");
+    em_declaracao = 1;
+}
 
-"&&"        { printf("<OP_AND> "); }
-"||"        { printf("<OP_OR> "); }
-"!"         { printf("<OP_NOT> "); }
+"func"       {
+    printf("<func> ");
+    strcpy(tipo_atual, "func");
+    em_declaracao = 0;
+}
 
-"+"         { printf("<OP_ADD> "); }
-"-"         { printf("<OP_SUB> "); }
-"*"         { printf("<OP_MUL> "); }
-"/"         { printf("<OP_DIV> "); }
-"**"        { printf("<OP_POW> "); }
-"="         { printf("<OP_ASSIGN> "); }
-"+="        { printf("<OP_ADD_ASSIGN> "); }
-"-="        { printf("<OP_SUB_ASSIGN> "); }
-"*="        { printf("<OP_MUL_ASSIGN> "); }
-"/="        { printf("<OP_DIV_ASSIGN> "); }
+"check"      { printf("<check> "); }
+"repeat"     { printf("<repeat> "); }
+"loop"       { printf("<loop> "); }
+"return"     { printf("<return> "); }
+"void"       {
+    printf("<void> ");
+    strcpy(tipo_atual, "void");
+    em_declaracao = 0;
+}
 
-"{"         { printf("<LBRACE> "); }
-"}"         { printf("<RBRACE> "); }
-"("         { printf("<LPAREN> "); }
-")"         { printf("<RPAREN> "); }
-"["         { printf("<LBRACKET> "); }
-"]"         { printf("<RBRACKET> "); }
-","         { printf("<COMMA> "); }
-";"         { printf("<SEMICOLON> "); }
+"let"        {
+    printf("<let> ");
+    strcpy(tipo_atual, "string");
+    em_declaracao = 1;
+}
 
-\"[^\"]*\"  { printf("<LIT_STR,%s> ", yytext); }  // Strings
-#[0-9A-Fa-f]{6} { printf("<LIT_COLOR,%s> ", yytext); }  // Cores
+"color"      {
+    printf("<color> ");
+    strcpy(tipo_atual, "color");
+    em_declaracao = 1;
+}
+
+{IDENTIFICADOR} {
+    if (!is_keyword(yytext)) {
+        if (em_declaracao) {
+            add_symbol(yytext, tipo_atual);
+            printf("<ID,%d> ", indice_tabela - 1);
+            em_declaracao = 0; // Reset após declaração
+        } else {
+            // Busca o índice mais recente do nome
+            int idx = 0;
+            for (int i = indice_tabela - 1; i >= 1; i--) {
+                if (strcmp(tabela[i].nome, yytext) == 0) {
+                    idx = i;
+                    break;
+                }
+            }
+            if (idx == 0) {
+                // Não existe ainda, adiciona como uso (var)
+                add_symbol(yytext, "var");
+                printf("<ID,%d> ", indice_tabela - 1);
+            } else {
+                // Já existe, usa o índice mais recente
+                printf("<ID,%d> ", idx);
+            }
+        }
+    }
+}
+
+";"         {
+    printf("<;> ");
+    em_declaracao = 0; // Força reset
+    strcpy(tipo_atual, "undef");
+}
+
+{DIGITO}+    { printf("<Inteiro, %s> ", yytext); }
+{DIGITO}+\.{DIGITO}+ { printf("<Flutuante, %s> ", yytext); }
+
+"-<="       { printf("< -<=, Operacional >"); }
+"-<"        { printf("< -<, Operacional > "); }
+"->="       { printf("< ->=, Operacional > "); }
+"->"        { printf("< ->, Operacional > "); }
+":="        { printf("< :=, Operacional > "); }
+":!"        { printf("< :!, Operacional > "); }
+
+"&&"        { printf("<&&, Logico> "); }
+"||"        { printf("<||, Logico> "); }
+"!"         { printf("<!, Logico> "); }
+
+"+"         { printf("<+, Aritmetico> "); }
+"-"         { printf("< -, Aritmetico> "); }
+"*"         { printf("<*, Aritmetico> "); }
+"/"         { printf("</, Aritmetico> "); }
+"**"        { printf("<**, Aritmetico> "); }
+"="         { printf("< =, Aritmetico> "); }
+"+="        { printf("< +=, Aritmetico> "); }
+"-="        { printf("< -=, Aritmetico> "); }
+"*="        { printf("< *=, Aritmetico> "); }
+"/="        { printf("< /=, Aritmetico> "); }
+
+"{"         { printf("<{> "); }
+"}"         { printf("<}> "); }
+"("         { printf("<(> "); }
+")"         { printf("<)> "); }
+"["         { printf("<[> "); }
+"]"         { printf("<]> "); }
+","         { printf("<,> "); }
+";"         { printf("<;> "); }
+
+\"[^\"]*\"  {
+    printf("<String, %s> ", yytext);
+    if (!symbol_exists(yytext)) {
+        add_symbol(yytext, "string");
+    }
+}
+
+#[0-9A-Fa-f]{6} {
+    printf("<Color, %s> ", yytext);
+    if (!symbol_exists(yytext)) {
+        add_symbol(yytext, "color");
+    }
+}
 
 \n          ;  // Ignora quebras de linha
 
-.           { printf("\nErro léxico: caractere inválido '%s' (linha %d)\n", yytext, yylineno); }
+.           {
+    printf("\nErro léxico: caractere inválido '%s' (linha %d)\n",
+           yytext, yylineno);
+}
 
 %%

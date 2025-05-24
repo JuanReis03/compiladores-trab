@@ -4,21 +4,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 typedef struct {
-    char *nome;
-    char *tipo;
-    char *escopo;
+    char nome[64];
+    char tipo[32];
     int linha;
 } EntradaTabela;
 
-// Declarações EXTERN das variáveis globais (sem alocação de memória)
+// Variáveis globais
 extern EntradaTabela tabela[];
 extern int indice_tabela;
-extern char *escopo_atual;
+extern char tipo_atual[32];
 extern int yylineno;
 
-// Protótipos das funções
+// Funções
 void add_symbol(const char *nome, const char *tipo);
 void print_tabela();
 

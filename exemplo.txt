@@ -1,0 +1,24 @@
+# Exemplo 1: Declaracao de funcao e variaveis 
+func soma (num a, num b) -> num {
+    return a + b;
+}
+
+num resultado = soma(5, 3);
+cen pi = 3.14;
+
+# Exemplo 2: Loop e vetores
+vec valores = [1, 2, 3, 4, 5];
+loop (i from 0 to 4) {
+    valores[i] = valores[i] ** 2;
+}
+
+# Exemplo 3: Condicional
+check (resultado -< 10 || pi :! 3.14) {
+    repeat (resultado ->= 0) {
+        resultado = resultado - 1;
+    }
+}
+
+# Extras (opcionais)
+let mensagem = "Teste bem-sucedido!";
+color cor_fundo = #2A2A2A;
