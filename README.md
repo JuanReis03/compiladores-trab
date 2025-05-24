@@ -8,7 +8,11 @@ flex lexer.l
 
 ## 2. compila o projeto
 
-gcc main.c lex.yy.c -o compilador -lfl
+gcc main.c lex.yy.c -o compilador -lfl 
+
+ou então, sem o "-lfl"
+
+gcc main.c lex.yy.c -o compilado
 
 ## 3. executa arquivo exemplo
 
